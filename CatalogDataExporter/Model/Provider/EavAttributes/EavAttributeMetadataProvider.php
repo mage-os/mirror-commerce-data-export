@@ -13,9 +13,7 @@ use Magento\DataExporter\Exception\UnableRetrieveData;
 use Magento\DataExporter\Export\DataProcessorInterface;
 use Magento\DataExporter\Export\ScopeResolverInterface;
 use Magento\DataExporter\Model\Indexer\FeedIndexMetadata;
-use Magento\Framework\App\ObjectManager;
 use Magento\Framework\App\ResourceConnection;
-use Magento\DataExporter\Model\Logging\CommerceDataExportLoggerInterface as LoggerInterface;
 
 /**
  * Generic EAV attribute metadata provider for catalog entities (products / categories).
@@ -40,11 +38,6 @@ class EavAttributeMetadataProvider implements DataProcessorInterface
     private FormatterInterface $formatter;
 
     /**
-     * @var LoggerInterface
-     */
-    private LoggerInterface $logger;
-
-    /**
      * @var string
      */
     private string $attributeType;
@@ -55,27 +48,32 @@ class EavAttributeMetadataProvider implements DataProcessorInterface
     private ScopeResolverInterface $scopeResolver;
 
     /**
+     * @var string[]
+     */
+    private array $excludeAttributes;
+
+    /**
      * @param ResourceConnection $resourceConnection
      * @param EavAttributeMetadataQuery $metadataQuery
      * @param FormatterInterface $formatter
-     * @param LoggerInterface $logger
      * @param string $attributeType
-     * @param ScopeResolverInterface|null $scopeResolver
+     * @param ScopeResolverInterface $scopeResolver
+     * @param string[] $excludeAttributes
      */
     public function __construct(
         ResourceConnection $resourceConnection,
         EavAttributeMetadataQuery $metadataQuery,
         FormatterInterface $formatter,
-        LoggerInterface $logger,
+        ScopeResolverInterface $scopeResolver,
         string $attributeType = 'catalog_product',
-        ?ScopeResolverInterface $scopeResolver = null
+        array $excludeAttributes = []
     ) {
         $this->resourceConnection = $resourceConnection;
         $this->metadataQuery = $metadataQuery;
         $this->formatter = $formatter;
-        $this->logger = $logger;
         $this->attributeType = $attributeType;
-        $this->scopeResolver = $scopeResolver ?? ObjectManager::getInstance()->get(ScopeResolverInterface::class);
+        $this->scopeResolver = $scopeResolver;
+        $this->excludeAttributes = $excludeAttributes;
     }
 
     /**
@@ -136,6 +134,11 @@ class EavAttributeMetadataProvider implements DataProcessorInterface
                 $select = $this->metadataQuery->getQuery($queryArguments, $scopeBatch);
                 $cursor = $connection->query($select);
                 while ($row = $cursor->fetch()) {
+                    if (!empty($this->excludeAttributes) && isset($row['attributeCode'])
+                        && \in_array($row['attributeCode'], $this->excludeAttributes, true)
+                    ) {
+                        continue;
+                    }
                     $output[] = $this->format($row);
                 }
                 $dataProcessorCallback($this->get($output));

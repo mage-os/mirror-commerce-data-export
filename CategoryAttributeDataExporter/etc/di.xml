@@ -61,6 +61,9 @@
             <argument name="metadataQuery" xsi:type="object">Magento\CategoryAttributeDataExporter\Model\Query\Eav\CategoryAttributeMetadataQuery</argument>
             <argument name="formatter" xsi:type="object">Magento\CatalogDataExporter\Model\Provider\Product\Formatter\MetadataFormatter</argument>
             <argument name="attributeType" xsi:type="string">catalog_category</argument>
+            <argument name="excludeAttributes" xsi:type="array">
+                <item name="automatic_sorting" xsi:type="string">automatic_sorting</item>
+            </argument>
         </arguments>
     </virtualType>
 
